@@ -255,6 +255,3 @@ Notifications saved to notifications_log.txt
 * Only contains **current session notifications**
 
 ---
-
-
-Do you want me to provide that next?
