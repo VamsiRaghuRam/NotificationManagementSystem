@@ -1,0 +1,5 @@
+===== Notification Log =====
+[27-10-25 16:56:04] Call from: Vamsi
+[27-10-25 16:56:12] Message from: Madhu - Hello
+============================
+
