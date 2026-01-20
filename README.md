@@ -163,6 +163,18 @@ Main
 
 ---
 
+### **4.4 Design Patterns Used**
+
+| Design Pattern | Description | Used In Which Class | Purpose |
+|---------------|------------|--------------------|---------|
+| **Factory Method Pattern** | Defines an interface for creating objects but lets subclasses or a factory class decide which object to instantiate. | `NotificationFactory` (creates `CallNotification`, `MessageNotification`) | To create different types of notifications dynamically based on user input without exposing object creation logic. |
+| **Strategy Pattern** | Defines a family of algorithms (behaviors), encapsulates each one, and makes them interchangeable. | `Notification` (abstract), `CallNotification`, `MessageNotification` | To provide different alert behaviors for calls and messages using polymorphism and method overriding. |
+| **Observer Pattern (Conceptual)** | Allows an object (observer) to be notified automatically when the state of another object (subject) changes. | `TimerManager` (Subject), `NotificationManager` (Observer) | To react when **Do Not Disturb (DND)** mode changes and process queued notifications when DND ends or is stopped manually. |
+| **Singleton Pattern** | Ensures that only one instance of a class is created and provides a global access point to it. | `NotificationManager`, `FileHandler` | To maintain a single centralized manager for notifications and logging throughout the application. |
+
+---
+
+
 ## **5. Implementation Details**
 
 ### **5.1 Packages**
