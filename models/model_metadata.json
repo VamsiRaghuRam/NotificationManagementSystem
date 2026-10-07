@@ -1,0 +1,28 @@
+{
+  "model_name": "Support Vector Machine (LinearSVC with Probability Calibration)",
+  "dataset": "NotifAI + Smartphone Notifications Dataset (Unified)",
+  "training_samples": 8412,
+  "test_samples": 2103,
+  "classes": [
+    "LOW",
+    "MEDIUM",
+    "HIGH"
+  ],
+  "tfidf_ngram_range": [
+    1,
+    3
+  ],
+  "tfidf_max_features": 5000,
+  "hyperparameters": {
+    "C": 1.0,
+    "class_weight": "balanced",
+    "random_state": 42
+  },
+  "test_accuracy": 0.7214,
+  "test_macro_f1": 0.6775,
+  "high_class_precision": 0.6915,
+  "high_class_recall": 0.7038,
+  "high_class_f1": 0.6976,
+  "cv_mean_f1": 0.6646,
+  "created_at": "2026-09-28"
+}

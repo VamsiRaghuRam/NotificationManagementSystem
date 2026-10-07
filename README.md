@@ -1,269 +1,124 @@
-# NotificationManagementSystem
+# SmartNotify – ML-Based Intelligent Notification Management System
 
-## **1. Project Description**
-
-The Notification Management System is a Java-based console application that allows users to activate a “Do Not Disturb (DND)” mode. While in DND, incoming calls and messages are temporarily stored, and urgent messages can bypass DND to alert the user immediately. The system also logs missed notifications to a file with clear, human-readable timestamps, and allows the user to stop DND manually before the timer ends.
-
-**Key Features:**
-
-* Activate DND for a specified duration.
-* Queue non-urgent notifications and display them after DND ends.
-* Immediate alert for messages marked as "urgent".
-* Manual termination of DND before the set duration.
-* Logs all notifications for the current session in a clean, readable format.
+> **Academic Capstone Project**  
+> **Final Release:** Version 1.0 (Phase 10 Complete Integration & Delivery)
 
 ---
 
-## **2. Problem Statement**
+## 📖 1. Project Overview & Problem Statement
 
-In daily life, users are often interrupted by unwanted calls or messages during focused work, meetings, or rest periods. Existing DND functionalities in phones either block all notifications or require manual handling.
+Modern mobile users receive dozens of notifications daily—ranging from critical server alerts to routine promotional ads and social media noise. Unfiltered notifications break focus, reduce productivity, and cause notification fatigue.
 
-**The problem:** Users need a system to selectively manage notifications:
-
-1. Queue non-urgent messages/calls during DND.
-2. Allow urgent notifications to bypass DND.
-3. Provide clear logs of missed notifications.
-4. Enable early termination of DND if necessary.
+**SmartNotify** solves this by classifying incoming Android notifications using machine learning into **`LOW`**, **`MEDIUM`**, or **`HIGH`** priority. During active **Focus Mode**, SmartNotify suppresses low-priority noise while allowing urgent alerts to reach the user. Additionally, SmartNotify incorporates an automated **Caller Urgency Triage** mechanism so callers can signal emergency callback needs without forcing constant interruptions.
 
 ---
 
-## **3. System Objectives**
+## ✨ 2. Key Features
 
-The objectives of this system are:
-
-1. **Manage Notifications Effectively:**
-
-   * Temporarily store non-urgent notifications.
-   * Alert urgent notifications immediately.
-
-2. **Flexible DND Control:**
-
-   * Start DND for a specified duration.
-   * Stop DND manually before the timer ends.
-
-3. **Logging & Tracking:**
-
-   * Maintain session-specific logs with timestamp, sender, type, and message.
-
-4. **Demonstrate OOP Concepts:**
-
-   * Use inheritance, polymorphism, encapsulation, and abstraction.
-
-5. **Use Collections and Multithreading:**
-
-   * Queue and PriorityQueue for notifications.
-   * Threads for DND timer and notification handling.
+- **Real-Time Notification Interception:** Intercepts system notifications via Android's native `NotificationListenerService`.
+- **On-Premise Machine Learning Inference:** Classifies notifications in real time using a calibrated **Support Vector Machine (LinearSVC)** backend model trained on 10,800 records.
+- **Intelligent Decision Engine:**
+  - **Focus Mode OFF:** Delivers standard native notification behavior.
+  - **Focus Mode ON:**
+    - `LOW` Priority $\rightarrow$ Suppressed silently in quiet history summary.
+    - `MEDIUM` Priority $\rightarrow$ Soft alert banner on `smartnotify_soft` channel.
+    - `HIGH` Priority $\rightarrow$ Urgent alert override on `smartnotify_important` channel (Vibration, Sound, Screen-On flags).
+- **Automated Caller Urgency Triage:** Sends automated SMS triage options (`SMARTNOTIFY 1` for immediate callback, `SMARTNOTIFY 2` for callback when free) to incoming callers during Focus Mode.
+- **Privacy-First Architecture:** Phone numbers, call logs, and notification contents are kept local; phone numbers are **NEVER** transmitted to external ML APIs or LLMs.
+- **Analytics & History Dashboard:** Real-time stats on analyzed notifications, suppressed items, override alerts, and pending caller requests.
 
 ---
 
-## **4. System Design & Architecture**
+## 🛠️ 3. Technology Stack
 
-### **4.1 Architecture Overview**
-
-```
-          +-----------------+
-          |     Main.java   |
-          |  User Interface |
-          +--------+--------+
-                   |
-                   v
-          +-----------------+
-          | NotificationMgr |
-          |  Handles queue  |
-          |  Alerts & Logs  |
-          +--------+--------+
-                   |
-        --------------------------
-        |                        |
-        v                        v
-+----------------+       +----------------+
-|  TimerManager  |       |  FileHandler   |
-|  DND Timer     |       | Writes logs    |
-+----------------+       +----------------+
-        |
-        v
-Non-urgent notifications queued
-Urgent notifications alerted immediately
-```
-
-**Explanation:**
-
-* `Main.java` handles user input and simulates incoming notifications.
-* `NotificationManager` queues notifications, alerts urgent messages, and writes logs.
-* `TimerManager` controls DND timing and allows early stopping.
-* `FileHandler` stores session notifications to a text file.
+- **Android Application:** Kotlin, Jetpack Compose Material 3, StateFlow, Coroutines, Android Telephony APIs.
+- **ML Backend:** Python 3.13, FastAPI, Uvicorn, Scikit-learn, Joblib.
+- **Machine Learning:** TF-IDF (Unigram + Bigram), Support Vector Machine (LinearSVC + Platt Scaling), Logistic Regression, Naive Bayes.
+- **Datasets:** NotifAI Dataset, Smartphone Notifications Dataset (10,800 raw rows consolidated into `training_data.jsonl`).
 
 ---
 
-### **4.2 Class Hierarchy**
+## 📊 4. ML Model Benchmarks & Comparison
 
-```
-Notification (abstract)
-├── CallNotification
-└── MessageNotification
+Three algorithms were trained and evaluated on 10,515 cleaned dataset records (80/20 train/test split):
 
-NotificationManager
-TimerManager
-FileHandler
-Main
-```
-
-* `Notification` defines common fields: sender, time, urgent, abstract methods: `alertUser()`, `getType()`.
-* `CallNotification` and `MessageNotification` extend `Notification`.
-* `NotificationManager` handles queues and alert logic.
-* `TimerManager` handles DND timer with multithreading.
-* `FileHandler` saves notifications to a file.
+| Model | Accuracy | Macro F1 | HIGH Priority Recall | HIGH Priority F1 | Selection Status |
+|---|---|---|---|---|---|
+| **Support Vector Machine (LinearSVC)** | **71.42%** | **0.6766** | **69.62%** | **0.6944** | **SELECTED MODEL** |
+| **Logistic Regression** | 70.61% | 0.6768 | 71.14% | 0.6887 | Evaluated |
+| **Multinomial Naive Bayes** | 70.04% | 0.6544 | 59.49% | 0.6456 | Evaluated |
 
 ---
 
-### **4.3 UML Diagram**
+## 🏗️ 5. System Architecture
 
 ```
-+---------------------+
-|   Notification      | <<abstract>>
-+---------------------+
-| - sender: String    |
-| - time: LocalDateTime|
-| - urgent: boolean   |
-+---------------------+
-| + alertUser(): void |
-| + getType(): String |
-| + toString(): String|
-+---------------------+
-           ^
-           |
-   ---------------------
-   |                   |
-+----------------+  +-------------------+
-| CallNotification|  | MessageNotification|
-+----------------+  +-------------------+
-|                |  | - message: String |
-| + alertUser()  |  | + alertUser()     |
-| + getType()    |  | + getType()       |
-+----------------+  +-------------------+
-```
-
-```
-+---------------------+         +------------------+
-| NotificationManager |         | TimerManager     |
-+---------------------+         +------------------+
-| - notificationQueue |         | - durationMinutes|
-| - missedList        |         | - active         |
-+---------------------+         +------------------+
-| + receiveNotification()       | + run()          |
-| + run()                       | + stopDND()      |
-+---------------------+         +------------------+
-           |
-           v
-      FileHandler
-+------------------+
-| + saveNotifications() |
-+------------------+
+[Android OS Notification] ──► [NotificationListenerService] ──► [FastAPI POST /predict]
+                                                                          │
+                                                                          ▼
+[User Action / Alert] ◄── [Decision Engine] ◄── [LOW / MED / HIGH] ◄── [SVM Model]
 ```
 
 ---
 
-### **4.4 Design Patterns Used**
+## 🚀 6. Setup & Execution Instructions
 
-| Design Pattern | Description | Used In Which Class | Purpose |
-|---------------|------------|--------------------|---------|
-| **Factory Method Pattern** | Defines an interface for creating objects but lets subclasses or a factory class decide which object to instantiate. | `NotificationFactory` (creates `CallNotification`, `MessageNotification`) | To create different types of notifications dynamically based on user input without exposing object creation logic. |
-| **Strategy Pattern** | Defines a family of algorithms (behaviors), encapsulates each one, and makes them interchangeable. | `Notification` (abstract), `CallNotification`, `MessageNotification` | To provide different alert behaviors for calls and messages using polymorphism and method overriding. |
-| **Observer Pattern (Conceptual)** | Allows an object (observer) to be notified automatically when the state of another object (subject) changes. | `TimerManager` (Subject), `NotificationManager` (Observer) | To react when **Do Not Disturb (DND)** mode changes and process queued notifications when DND ends or is stopped manually. |
-| **Singleton Pattern** | Ensures that only one instance of a class is created and provides a global access point to it. | `NotificationManager`, `FileHandler` | To maintain a single centralized manager for notifications and logging throughout the application. |
+### Step 1: Start FastAPI ML Backend
+```bash
+# In project root
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+```
+Verify health check:
+- `GET http://localhost:8000/health` $\rightarrow$ `{"status": "healthy", "model_loaded": true}`
+
+### Step 2: Launch Web Interactive Demo App
+```bash
+python -m http.server 8080
+```
+Access `http://localhost:8080/` in browser.
+
+### Step 3: Run Automated Tests
+```bash
+$env:PYTHONPATH="."; pytest backend/tests/test_api.py
+```
+
+### Step 4: Build & Deploy Android Application
+- Open `android/` directory in Android Studio.
+- Build and run on Android Emulator or physical device (API Level 26+).
+- Grant **Notification Access** and **Phone/SMS permissions** when prompted.
 
 ---
 
+## 🔒 7. Honest Android OS Limitations
 
-## **5. Implementation Details**
-
-### **5.1 Packages**
-
-```
-notificationapp/
- ├── Main.java
- ├── model/
- │    ├── Notification.java
- │    ├── CallNotification.java
- │    └── MessageNotification.java
- ├── service/
- │    ├── NotificationManager.java
- │    └── TimerManager.java
- └── utils/
-      └── FileHandler.java
-```
+1. **No Kernel-Level Interception:** Standard Android apps cannot silently mute external third-party apps before the OS plays sound. SmartNotify uses custom notification channels (`smartnotify_soft`, `smartnotify_important`) for controlled alerting.
+2. **No Caller Device Control:** SmartNotify cannot draw UI or buttons on another person's phone. Triage relies on standard SMS communication.
+3. **User Channel Authority:** If a user disables notifications in Android System Settings, the OS overrides app settings.
 
 ---
 
-### **5.2 Key Features in Implementation**
+## 🔮 8. Future Enhancements
 
-1. **OOP Concepts:**
-
-   * **Abstraction:** `Notification` is abstract, implemented by Call and Message.
-   * **Inheritance & Polymorphism:** Different notifications share interface but behave differently.
-   * **Encapsulation:** Fields are private/protected, accessed via methods.
-
-2. **Collections Framework:**
-
-   * `Queue<Notification>` for non-urgent notifications.
-   * `PriorityQueue` for urgent messages (if implemented).
-   * `ArrayList` for logging.
-
-3. **Multithreading:**
-
-   * `TimerManager` runs as a separate thread.
-   * `NotificationManager` runs to check and process notifications.
-
-4. **File I/O:**
-
-   * Logs stored in `notifications_log.txt` **overwritten** each run.
-
-5. **DND Control:**
-
-   * Manual stop via `stopDND` command.
-   * Urgent messages bypass DND automatically.
+- On-device TensorFlow Lite / ONNX ML inference for offline zero-latency classification.
+- User feedback loop to personalize notification priority over time.
+- Contextual signals (Calendar event integration, GPS location context).
 
 ---
 
-### **5.3 Sample Console Instructions**
+## 📂 9. Project Structure
 
 ```
-Enter DND duration in minutes (simulated as seconds): 30
-DND started for 30 minutes...
-
-Instructions:
-1. Type 'exit' as sender name to stop the simulation.
-2. Send a message containing 'urgent' to notify the user immediately.
-3. Type 'stopDND' as sender name to end DND early.
-
-Enter sender name: Vamsi
-Is it a Call or Message (C/M)? M
-Enter message text: urgent
-URGENT alert from Vamsi
-Message from Vamsi: urgent
-
-Enter sender name: stopDND
-DND period ended. You are now available.
-Missed notifications processed.
-Notifications saved to notifications_log.txt
+SmartNotify/
+├── android/               # Native Android App (Kotlin + Compose)
+├── backend/               # FastAPI ML Service & Pytest Suites
+├── ml/                    # Data Preprocessing, Training & Benchmark Scripts
+├── models/                # Serialized SVM Pipeline Artifacts
+├── docs/                  # Technical Docs (Datasets, Pipeline, Architecture, Demo)
+├── final_project/         # Complete Report Package & Deliverables
+├── index.html & app.js    # Interactive Web Demonstration Platform
+└── README.md              # Master Documentation
 ```
 
 ---
 
-### **5.4 Notification Log Example**
-
-```
-===== Notification Log =====
-[26-10-25 17:31:18] Call from: Vamsi
-[26-10-25 17:31:26] Message from: Madhu - Hello
-[26-10-25 17:31:39] Call from: Vineesha
-============================
-```
-
-* Shows **type** (Call/Message)
-* Shows **sender**
-* Shows **message content** (if Message)
-* Shows **timestamp** in readable format
-* Only contains **current session notifications**
-
----
+*SmartNotify — Intelligent Notification Management System*
