@@ -67,3 +67,4 @@ Examples include:
 - `server down`
 - `OTP`
 - `security alert`
+- 'emergency'
