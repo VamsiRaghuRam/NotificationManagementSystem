@@ -1,124 +1,97 @@
-# SmartNotify – ML-Based Intelligent Notification Management System
+# SmartNotify Native Android Application (Phase 8 Focus Mode & Intelligent Alerting)
 
-> **Academic Capstone Project**  
-> **Final Release:** Version 1.0 (Phase 10 Complete Integration & Delivery)
-
----
-
-## 📖 1. Project Overview & Problem Statement
-
-Modern mobile users receive dozens of notifications daily—ranging from critical server alerts to routine promotional ads and social media noise. Unfiltered notifications break focus, reduce productivity, and cause notification fatigue.
-
-**SmartNotify** solves this by classifying incoming Android notifications using machine learning into **`LOW`**, **`MEDIUM`**, or **`HIGH`** priority. During active **Focus Mode**, SmartNotify suppresses low-priority noise while allowing urgent alerts to reach the user. Additionally, SmartNotify incorporates an automated **Caller Urgency Triage** mechanism so callers can signal emergency callback needs without forcing constant interruptions.
+Native Android mobile application for **SmartNotify – ML-Based Intelligent Notification Management System**. 
+Phase 8 connects real-time ML priority predictions (`LOW`, `MEDIUM`, `HIGH`) to the **`NotificationDecisionEngine`** and official Android Notification Channels (`smartnotify_soft`, `smartnotify_important`) based on active **Focus Mode** status and user **Alert Preferences**.
 
 ---
 
-## ✨ 2. Key Features
-
-- **Real-Time Notification Interception:** Intercepts system notifications via Android's native `NotificationListenerService`.
-- **On-Premise Machine Learning Inference:** Classifies notifications in real time using a calibrated **Support Vector Machine (LinearSVC)** backend model trained on 10,800 records.
-- **Intelligent Decision Engine:**
-  - **Focus Mode OFF:** Delivers standard native notification behavior.
-  - **Focus Mode ON:**
-    - `LOW` Priority $\rightarrow$ Suppressed silently in quiet history summary.
-    - `MEDIUM` Priority $\rightarrow$ Soft alert banner on `smartnotify_soft` channel.
-    - `HIGH` Priority $\rightarrow$ Urgent alert override on `smartnotify_important` channel (Vibration, Sound, Screen-On flags).
-- **Automated Caller Urgency Triage:** Sends automated SMS triage options (`SMARTNOTIFY 1` for immediate callback, `SMARTNOTIFY 2` for callback when free) to incoming callers during Focus Mode.
-- **Privacy-First Architecture:** Phone numbers, call logs, and notification contents are kept local; phone numbers are **NEVER** transmitted to external ML APIs or LLMs.
-- **Analytics & History Dashboard:** Real-time stats on analyzed notifications, suppressed items, override alerts, and pending caller requests.
-
----
-
-## 🛠️ 3. Technology Stack
-
-- **Android Application:** Kotlin, Jetpack Compose Material 3, StateFlow, Coroutines, Android Telephony APIs.
-- **ML Backend:** Python 3.13, FastAPI, Uvicorn, Scikit-learn, Joblib.
-- **Machine Learning:** TF-IDF (Unigram + Bigram), Support Vector Machine (LinearSVC + Platt Scaling), Logistic Regression, Naive Bayes.
-- **Datasets:** NotifAI Dataset, Smartphone Notifications Dataset (10,800 raw rows consolidated into `training_data.jsonl`).
-
----
-
-## 📊 4. ML Model Benchmarks & Comparison
-
-Three algorithms were trained and evaluated on 10,515 cleaned dataset records (80/20 train/test split):
-
-| Model | Accuracy | Macro F1 | HIGH Priority Recall | HIGH Priority F1 | Selection Status |
-|---|---|---|---|---|---|
-| **Support Vector Machine (LinearSVC)** | **71.42%** | **0.6766** | **69.62%** | **0.6944** | **SELECTED MODEL** |
-| **Logistic Regression** | 70.61% | 0.6768 | 71.14% | 0.6887 | Evaluated |
-| **Multinomial Naive Bayes** | 70.04% | 0.6544 | 59.49% | 0.6456 | Evaluated |
-
----
-
-## 🏗️ 5. System Architecture
+## 📱 Application Architecture & Package Layout
 
 ```
-[Android OS Notification] ──► [NotificationListenerService] ──► [FastAPI POST /predict]
-                                                                          │
-                                                                          ▼
-[User Action / Alert] ◄── [Decision Engine] ◄── [LOW / MED / HIGH] ◄── [SVM Model]
+android/
+├── app/
+│   ├── src/main/
+│   │   ├── java/com/smartnotify/app/
+│   │   │   ├── MainActivity.kt               # Main ComponentActivity
+│   │   │   ├── decision/
+│   │   │   │   └── NotificationDecisionEngine.kt # Decision Matrix & Android Channel Alert Executor
+│   │   │   ├── service/
+│   │   │   │   └── SmartNotifyNotificationListenerService.kt # Triggers async classifier
+│   │   │   ├── classifier/
+│   │   │   │   └── NotificationClassifier.kt  # Calls FastAPI POST /predict & NotificationDecisionEngine
+│   │   │   ├── data/
+│   │   │   │   ├── api/
+│   │   │   │   │   ├── ApiModels.kt           # PredictionApiRequest, PredictionApiResponse, HealthCheckResponse
+│   │   │   │   │   ├── PredictionApi.kt       # Retrofit Interface
+│   │   │   │   │   └── ApiClient.kt           # Retrofit Client (http://10.0.2.2:8000/)
+│   │   │   │   ├── model/Models.kt            # ActionTaken (SUPPRESSED_BY_SMARTNOTIFY, SOFT_ALERT, IMPORTANT_ALERT, NORMAL_BEHAVIOR)
+│   │   │   │   └── repository/Repositories.kt # NotificationRepository, FocusRepository (Timer Countdown), PreferencesRepository
+│   │   │   ├── viewmodel/ViewModels.kt       # HomeViewModel, FocusViewModel, HistoryViewModel, StatisticsViewModel, SettingsViewModel
+│   │   │   ├── navigation/
+│   │   │   │   ├── Screen.kt                  # Navigation routes
+│   │   │   │   └── SmartNotifyNavGraph.kt     # Bottom Navigation & NavHost
+│   │   │   └── ui/
+│   │   │       ├── theme/Color.kt, Theme.kt
+│   │   │       ├── components/Components.kt   # ActionTakenText badges
+│   │   │       ├── home/HomeScreen.kt         # Live Dashboard with Focus status
+│   │   │       ├── focus/FocusScreen.kt       # Live HH:MM:SS timer countdown & duration presets
+│   │   │       ├── history/HistoryScreen.kt   # Real-time action log (Suppressed / Soft Alert / Important Alert)
+│   │   │       ├── statistics/StatisticsScreen.kt # Decision engine action analytics
+│   │   │       └── settings/SettingsScreen.kt
+│   │   └── AndroidManifest.xml                # Registered NotificationListenerService & permissions
+│   └── build.gradle.kts                       # Retrofit, OkHttp, Gson dependencies
+├── docs/
+│   └── android_limitations.md                 # Technical document detailing AOSP OS boundaries & official capabilities
+├── build.gradle.kts
+└── settings.gradle.kts
 ```
 
 ---
 
-## 🚀 6. Setup & Execution Instructions
+## ⚙️ Phase 8 Decision Engine Matrix
 
-### Step 1: Start FastAPI ML Backend
-```bash
-# In project root
-python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
-```
-Verify health check:
-- `GET http://localhost:8000/health` $\rightarrow$ `{"status": "healthy", "model_loaded": true}`
-
-### Step 2: Launch Web Interactive Demo App
-```bash
-python -m http.server 8080
-```
-Access `http://localhost:8080/` in browser.
-
-### Step 3: Run Automated Tests
-```bash
-$env:PYTHONPATH="."; pytest backend/tests/test_api.py
-```
-
-### Step 4: Build & Deploy Android Application
-- Open `android/` directory in Android Studio.
-- Build and run on Android Emulator or physical device (API Level 26+).
-- Grant **Notification Access** and **Phone/SMS permissions** when prompted.
+| ML Priority Prediction | Focus Mode State | Action Evaluated & Executed | Supported Android Behavior |
+|---|---|---|---|
+| **Any (`LOW`, `MED`, `HIGH`)** | **`OFF`** | `NORMAL_BEHAVIOR` | Logged in history; standard native notification behavior |
+| **`LOW`** | **`ACTIVE`** | `SUPPRESSED_BY_SMARTNOTIFY` | Quietly logged in history; **no extra SmartNotify alert banner created** |
+| **`MEDIUM`** | **`ACTIVE`** | `SOFT_ALERT` | Low-intrusion silent notification banner issued on `smartnotify_soft` channel |
+| **`HIGH`** | **`ACTIVE`** | `IMPORTANT_ALERT` | High-priority banner issued on `smartnotify_important` channel (Vibrate, Sound, ScreenOn per user preferences) |
 
 ---
 
-## 🔒 7. Honest Android OS Limitations
-
-1. **No Kernel-Level Interception:** Standard Android apps cannot silently mute external third-party apps before the OS plays sound. SmartNotify uses custom notification channels (`smartnotify_soft`, `smartnotify_important`) for controlled alerting.
-2. **No Caller Device Control:** SmartNotify cannot draw UI or buttons on another person's phone. Triage relies on standard SMS communication.
-3. **User Channel Authority:** If a user disables notifications in Android System Settings, the OS overrides app settings.
-
----
-
-## 🔮 8. Future Enhancements
-
-- On-device TensorFlow Lite / ONNX ML inference for offline zero-latency classification.
-- User feedback loop to personalize notification priority over time.
-- Contextual signals (Calendar event integration, GPS location context).
-
----
-
-## 📂 9. Project Structure
+## 🧪 Phase 8 End-to-End Acceptance Test Workflow
 
 ```
-SmartNotify/
-├── android/               # Native Android App (Kotlin + Compose)
-├── backend/               # FastAPI ML Service & Pytest Suites
-├── ml/                    # Data Preprocessing, Training & Benchmark Scripts
-├── models/                # Serialized SVM Pipeline Artifacts
-├── docs/                  # Technical Docs (Datasets, Pipeline, Architecture, Demo)
-├── final_project/         # Complete Report Package & Deliverables
-├── index.html & app.js    # Interactive Web Demonstration Platform
-└── README.md              # Master Documentation
+1. Ensure FastAPI ML Backend is Running (Port 8000)
+   $ uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+
+2. Launch SmartNotify App on Emulator / Device
+   -> Home screen shows: "FastAPI Backend (http://10.0.2.2:8000): Connected (Healthy)"
+
+3. Activate Focus Mode (Select 1 Hour Duration)
+   -> Focus Mode status changes to ACTIVE. Live countdown displays remaining time (00:59:59).
+
+4. Test Case 1: Incoming LOW Priority Notification (e.g. Shopping Sale Promo)
+   a. Listener captures notification & sends to FastAPI POST /predict.
+   b. FastAPI model predicts LOW.
+   c. NotificationDecisionEngine evaluates Focus Mode = ACTIVE + Priority = LOW.
+   d. Action executed: SUPPRESSED_BY_SMARTNOTIFY (No extra alert banner generated).
+   e. History Screen records item: "LOW (92%) - SUPPRESSED BY SMARTNOTIFY (Focus Protected)".
+
+5. Test Case 2: Incoming HIGH Priority Notification (e.g. "PROD DOWN Payment Failure")
+   a. Listener captures notification & sends to FastAPI POST /predict.
+   b. FastAPI model predicts HIGH.
+   c. NotificationDecisionEngine evaluates Focus Mode = ACTIVE + Priority = HIGH.
+   d. Action executed: IMPORTANT_ALERT.
+   e. Android issue banner on smartnotify_important channel (Vibrate & Sound per settings).
+   f. History Screen records item: "HIGH (83%) - IMPORTANT ALERT (Focus Mode Override Triggered)".
+
+6. Test Case 3: Stop Focus Mode (or Timer Expires)
+   a. Focus Mode automatically transitions to OFF.
+   b. Future notifications are processed with NORMAL_BEHAVIOR.
 ```
 
 ---
 
-*SmartNotify — Intelligent Notification Management System*
+## ⚠️ Platform Limitations Reference
+For detailed documentation on AOSP OS notification muting restrictions, channel user authority, and full-screen intent policies, refer to [`docs/android_limitations.md`](file:///c:/Users/2005k/OneDrive/Documents/Vamsi/Temp/Notifications/docs/android_limitations.md).
